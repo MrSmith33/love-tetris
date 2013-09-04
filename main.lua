@@ -8,8 +8,6 @@ level = {
 	fall_interval = 0.5,
 	curr_interval = 0,
 
-	back_col = {0, 0, 0},
-
 	score = 0,
 
 	init = function()
@@ -82,17 +80,20 @@ figure = {
 	next = {},
 }
 
+-----------------------------------------------------------------------------------------------------------------------
+------ Callbacks
+
 function love.load()
 	level.init()
 	field.init()
 	spawn_fig()
-	-- print( #figure.current,figure.current.index)
 	level.running = true
 end
 
 function love.update(dt)
 	if level.running then
 		level.curr_interval = level.curr_interval + dt
+
 		if level.curr_interval > level.fall_interval then
 			level.curr_interval = level.curr_interval - level.fall_interval
 			fall()
@@ -170,13 +171,46 @@ function fall()
 	if not collision_at(figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
 	else
-		floor_reached()
+		on_floor_reached()
 	end
 end
 
-function floor_reached()
-	merge_figure()
-	spawn_fig()
+function move_left()
+	if not collision_at(figure.x - 1, figure.y) then
+		figure.x = figure.x - 1
+	end
+end
+
+function move_right()
+	if not collision_at(figure.x + 1, figure.y) then
+		figure.x = figure.x + 1
+	end
+end
+
+-- returns true if was rotated
+function rotate_fig(figure)
+	local new_fig
+
+	for y = 1, #figure.current[1] do
+		for x = 1, #figure.current do
+			if string.sub(figure.current[y], x, x) == '#' then
+				if field[y + test_y] == nil or
+					field[y + test_y][x + test_x] == nil or
+					field[y + test_y][x + test_x] ~= 1 then
+					return true
+				end
+			end
+		end
+	end
+end
+
+------------------------------------------------------------
+
+function spawn_fig()
+	figure.current = figure.next
+	figure.next = figures.random_fig()
+	figure.x = figure.spawn.x
+	figure.y = figure.spawn.y
 end
 
 -- merges figure into field
@@ -190,7 +224,16 @@ function merge_figure()
 	end
 end
 
---- returns true if figure collides
+-- 
+function on_floor_reached()
+	merge_figure()
+	spawn_fig()
+end
+
+------------------------------------------------------------
+--- Checks
+
+-- returns true if figure collides
 function collision_at(test_x, test_y)
 	local fig_height = #figure.current
 
@@ -208,28 +251,3 @@ function collision_at(test_x, test_y)
 
 	return false
 end
-
--- returns true if was rotated
-function rotate_fig(figure)
-	
-end
-
-function move_left()
-	if not collision_at(figure.x - 1, figure.y) then
-		figure.x = figure.x - 1
-	end
-end
-
-function move_right()
-	if not collision_at(figure.x + 1, figure.y) then
-		figure.x = figure.x + 1
-	end
-end
-
-function spawn_fig()
-	figure.current = figure.next
-	figure.next = figures.random_fig()
-	figure.x = figure.spawn.x
-	figure.y = figure.spawn.y
-end
-
