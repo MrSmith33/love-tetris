@@ -1,6 +1,10 @@
 -----------------------------------------------------------------------------------------------------------------------
 ------ Data
 
+settings = {
+	shadow = true
+}
+
 -- block look
 block = {
 	w = 10,
@@ -10,11 +14,10 @@ block = {
 
 -- tetris color scheme
 colors = {
-	{0, 0, 0},
 	{255, 0, 0},
 	{0, 0, 255},
 	{255, 255, 0},
-	{0, 0, 255},
+	{0, 128, 255},
 	{255, 0, 255},
 	{0, 255, 255},
 	{255, 255, 255},
@@ -24,13 +27,13 @@ colors = {
 -- list of possible figures
 -- they are colored by its index in 'colors' list
 figures = {
-	{'    ', '####', '    ', '    '},
-	{'#  ', '###', '   '},
-	{'  #', '###', '   '},
-	{'    ', ' ## ', ' ## ', '    '},
-	{' ##', '## ', '   '},
-	{'## ', ' ##', '   '},
-	{' # ', '###', '   '},
+	{y=-1, '    ', '####', '    ', '    '},
+	{y= 0, '#  ', '###', '   '},
+	{y= 0, '  #', '###', '   '},
+	{y=-1, '    ', ' ## ', ' ## ', '    '},
+	{y= 0, ' ##', '## ', '   '},
+	{y= 0, '## ', ' ##', '   '},
+	{y= 0, ' # ', '###', '   '},
 
 	random_fig = function()
 		local index = math.random(1, #figures)
@@ -38,7 +41,7 @@ figures = {
 		for _, line in ipairs(figures[index]) do
 			table.insert(figure, line)
 		end
-		figure.index = index + 1
+		figure.index = index
 		return figure
 	end
 }
@@ -46,7 +49,8 @@ figures = {
 -- stores level info, such as score, game speed etc.
 level = {
 	running = false,
-	fall_interval = 0.5,
+	game_over = false,
+	fall_interval = 1,
 	curr_interval = 0,
 
 	score = 0,
@@ -71,7 +75,7 @@ field = {
 		for y = 1, field.h do
 			field[y] = {}
 			for x = 1, field.w do
-				field[y][x] = 1
+				field[y][x] = 0
 			end
 		end
 	end
@@ -79,8 +83,8 @@ field = {
 
 figure = {
 	x = 4,
-	y = 1,
-	spawn = {x = 4, y = 1},
+	y = 0,
+	spawn = {x = 4, y = 0},
 	current = {},
 	next = {},
 }
