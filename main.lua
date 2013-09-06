@@ -11,16 +11,24 @@ io.stdout:setvbuf("no")
 ------ Callbacks
 
 function love.load()
+	init_audio()
 	start_game()
 end
 
 function love.update(dt)
-	if level.running then
-		level.curr_interval = level.curr_interval + dt
-
-		if level.curr_interval > level.fall_interval then
-			level.curr_interval = level.curr_interval - level.fall_interval
-			fall()
+	if game.state ~= 'game_over' then
+		game.curr_interval = game.curr_interval - dt
+		if game.curr_interval < 0 then
+			if game.state == 'running' then
+				game.curr_interval = game.curr_interval + game.fall_interval
+				fall()
+			elseif game.state == 'clearing' then
+				game.state = 'running'
+				spawn_fig()
+			elseif game.state == 'spawning' then
+				game.state = 'running'
+				spawn_fig()
+			end
 		end
 	end
 end
@@ -34,17 +42,17 @@ g = love.graphics
 function love.draw()
 	g.setColor(255, 255, 255)
 	g.print('FPS:'..love.timer.getFPS(), g.getWidth() - 110, 0)
-	g.print('Score:'..level.score, g.getWidth() - 110, 12)
+	g.print('Score:'..game.score, g.getWidth() - 110, 12)
 	for y=1, #figure.next do
 		for x=1, #figure.next[1] do
 			g.print(string.sub(figure.next[y], x, x), g.getWidth() - 90 + (x-1)*12, 36 + (y-1)*12)
 		end
 	end
 	draw_field()
-	if not level.game_over then
+	if game.state == 'running' then
 		draw_figure(figure.x, figure.y, draw_block)
 		if settings.shadow then draw_shadow() end
-	else
+	elseif game.state == 'game_over' then
 		g.setColor(255, 255, 255)
 		g.printf('Game over', field.offset.x, field.offset.y + (block.h + block.offset)*field.h + 4, 
 					((block.w + block.offset)*field.w), 'center')
@@ -73,7 +81,7 @@ function draw_figure(_x, _y, drawer_func)
 	for y = 1, #figure.current do
 		for x = 1, #figure.current[1] do
 			if string.sub(figure.current[y], x, x) == '#' then
-				drawer_func(_x + x, _y + y, colors[figure.current.index])
+				drawer_func(_x + x - 1, _y + y - 1, colors[figure.current.index])
 			end
 		end
 	end
@@ -97,6 +105,7 @@ end
 ------------------------------------------------------------
 -- x, y [1 .. n]
 function draw_block(x, y, color)
+	if y <1 then return end
 	g.setColor(color)
 	local lx = field.offset.x + (x-1)*(block.w + block.offset)
 	local ly = field.offset.y + (y-1)*(block.h + block.offset)
@@ -109,14 +118,13 @@ end
 ------ Logic
 
 function start_game()
-	level.init()
+	game.init()
 	field.init()
-	level.running = true
-	level.game_over = false
+	game.state = 'running'
 end
 
 function love.keypressed( key, isrepeat )
-	if level.game_over then 
+	if game.state == 'game_over' then 
 		if key == 'r' then
 			start_game()
 		end
@@ -147,6 +155,7 @@ end
 function fall()
 	if not collision_at(figure.current, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
+		game.curr_interval = game.fall_interval
 		return false
 	else
 		on_floor_reached()
@@ -170,13 +179,13 @@ end
 function rotate_fig_left()
 	local new_fig = {}
 
-	for x = 1, #figure.current do
-		new_fig[x] = ''
-		for y = #figure.current[1], 1, -1 do
-			if string.sub(figure.current[y], x, x) == '#' then
-				new_fig[x] = new_fig[x]..'#'
+	for y = 1, #figure.current[1] do
+		new_fig[y] = ''
+		for x = #figure.current, 1, -1 do
+			if string.sub(figure.current[x], y, y) == '#' then
+				new_fig[y] = new_fig[y]..'#'
 			else
-				new_fig[x] = new_fig[x]..' '
+				new_fig[y] = new_fig[y]..' '
 			end
 		end
 	end
@@ -194,22 +203,34 @@ function on_floor_reached()
 	merge_figure()
 	local lines_removed = test_lines()
 	on_lines_removed(lines_removed)
-	spawn_fig()
+	if lines_removed > 0 then
+		game.state = 'clearing'
+	else
+		audio.drop:play()
+		game.state = 'running'
+		spawn_fig()
+	end
 end
 
 function on_lines_removed(num)
 	if num == 0 then return end
-	level.score = level.score + (2^(num-1)*100)
+	game.score = game.score + (2^(num-1)*100)
+	game.curr_interval = game.clearing_pause
+	audio.linecleanup:play()
+end
+
+function on_game_over()
+	audio.gameover:play()
 end
 
 function spawn_fig()
 	figure.current = figure.next
 	figure.next = figures.random_fig()
 	figure.x = figure.spawn.x
-	figure.y = figure.spawn.y + figures[figure.current.index].y
+	figure.y = figure.spawn.y
 	if collision_at(figure.current, figure.x, figure.y) then
-		level.game_over = true
-		level.running = false
+		game.state = 'game_over'
+		on_game_over()
 	end
 end
 
@@ -243,8 +264,8 @@ function merge_figure()
 	for y = 1, #figure.current do
 		for x = 1, figure.current[1]:len() do
 			if string.sub(figure.current[y], x, x) == '#' then
-				field[y+figure.y][x+figure.x] = figure.current.index
-			end
+				field[y+figure.y - 1][x+figure.x - 1] = figure.current.index
+			end 
 		end
 	end
 end
@@ -254,14 +275,12 @@ end
 
 -- returns true if figure collides
 function collision_at(fig_to_test, test_x, test_y)
-	local fig_height = #fig_to_test
-
 	for y = 1, #fig_to_test do
 		for x = 1, fig_to_test[1]:len() do
 			if string.sub(fig_to_test[y], x, x) == '#' then
-				if field[y + test_y] == nil or
-					field[y + test_y][x + test_x] == nil or
-					field[y + test_y][x + test_x] ~= 0 then
+				if field[y + test_y - 1] == nil or
+					field[y + test_y - 1][x + test_x - 1] == nil or
+					field[y + test_y - 1][x + test_x - 1] ~= 0 then
 					return true
 				end
 			end

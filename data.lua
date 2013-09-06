@@ -24,16 +24,31 @@ colors = {
 	{0, 255, 0}
 }
 
+init_audio = function ()
+	for i,v in pairs(audiofiles) do
+		audio[v] = love.audio.newSource(v..'.ogg', 'static')
+	end
+end
+
+audiofiles = {
+	'linecleanup',
+	'drop',
+	'gameover'
+}
+
+audio = {
+}
+
 -- list of possible figures
 -- they are colored by its index in 'colors' list
 figures = {
-	{y=-1, '    ', '####', '    ', '    '},
-	{y= 0, '#  ', '###', '   '},
-	{y= 0, '  #', '###', '   '},
-	{y=-1, '    ', ' ## ', ' ## ', '    '},
-	{y= 0, ' ##', '## ', '   '},
-	{y= 0, '## ', ' ##', '   '},
-	{y= 0, ' # ', '###', '   '},
+	{'    ', '####', '    '},
+	{'#  ', '###', '   '},
+	{'  #', '###', '   '},
+	{'##', '##'},
+	{' ##', '## ', '   '},
+	{'## ', ' ##', '   '},
+	{' # ', '###', '   '},
 
 	random_fig = function()
 		local index = math.random(1, #figures)
@@ -46,18 +61,18 @@ figures = {
 	end
 }
 
--- stores level info, such as score, game speed etc.
-level = {
-	running = false,
-	game_over = false,
-	fall_interval = 1,
+-- stores game info, such as score, game speed etc.
+game = {
+	state = '',--'running', 'clearing', 'game_over', 'spawning'
+	fall_interval = 0.7,
 	curr_interval = 0,
+	clearing_pause = 1,
 
 	score = 0,
 
 	init = function()
-		level.score = 0
-		level.curr_interval = 0
+		game.score = 0
+		game.curr_interval = 0
 		figure.current = figures.random_fig()
 		figure.next = figures.random_fig()
 	end
@@ -72,7 +87,7 @@ field = {
 	offset = {x = 100, y = 100},
 
 	init = function ()
-		for y = 1, field.h do
+		for y = -1, field.h do
 			field[y] = {}
 			for x = 1, field.w do
 				field[y][x] = 0
@@ -82,9 +97,9 @@ field = {
 }
 
 figure = {
+	spawn = {x = 4, y = -1},
 	x = 4,
-	y = 0,
-	spawn = {x = 4, y = 0},
+	y = -1,
 	current = {},
 	next = {},
 }
