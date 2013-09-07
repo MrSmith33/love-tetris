@@ -74,8 +74,8 @@ game = {
 	init = function()
 		game.score = 0
 		game.curr_interval = 0
-		figure.current = figures.random_fig()
 		figure.next = figures.random_fig()
+		spawn_fig()
 	end
 }
 
@@ -98,7 +98,6 @@ field = {
 }
 
 figure = {
-	spawn = {x = 4, y = -1},
 	x = 4,
 	y = -1,
 	current = {},

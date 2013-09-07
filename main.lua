@@ -54,7 +54,7 @@ function love.draw()
 	g.setColor(255, 255, 255)
 	g.print('FPS:'..love.timer.getFPS(), g.getWidth() - 110, 0)
 	g.print('Score:'..game.score, g.getWidth() - 110, 12)
-	
+
 	for y=1, #figure.next do
 		for x=1, #figure.next[1] do
 			g.print(string.sub(figure.next[y], x, x), g.getWidth() - 90 + (x-1)*12, 36 + (y-1)*12)
@@ -137,8 +137,8 @@ end
 ------ Logic
 
 function start_game()
-	game.init()
 	field.init()
+	game.init()
 	game.state = 'running'
 end
 
@@ -253,8 +253,8 @@ end
 function spawn_fig()
 	figure.current = figure.next
 	figure.next = figures.random_fig()
-	figure.x = figure.spawn.x
-	figure.y = figure.spawn.y
+	figure.x = math.ceil((#field[1])/2) - math.ceil((#figure.current[1])/2) + 1
+	figure.y = -1
 
 	if collides_with_blocks(figure.current, figure.x, figure.y) then
 		game.state = 'game_over'
