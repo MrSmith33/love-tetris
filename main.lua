@@ -23,6 +23,18 @@ function love.update(dt)
 				game.curr_interval = game.curr_interval + game.fall_interval
 				fall()
 			elseif game.state == 'clearing' then
+				local lines_removed = 0
+				for i = #game.lines_to_remove, 1, -1  do
+					table.remove(field, game.lines_to_remove[i])
+					lines_removed = lines_removed + 1
+				end
+				for i = 1, lines_removed do
+					table.insert(field, 1, {}) 
+					for i=1, field.w do
+						field[1][i] = 0
+					end
+				end
+				on_lines_removed(lines_removed)
 				game.state = 'running'
 				spawn_fig()
 			elseif game.state == 'spawning' then
@@ -201,9 +213,8 @@ end
 -- 
 function on_floor_reached()
 	merge_figure()
-	local lines_removed = test_lines()
-	on_lines_removed(lines_removed)
-	if lines_removed > 0 then
+	game.lines_to_remove = test_lines()
+	if #game.lines_to_remove > 0 then
 		game.state = 'clearing'
 	else
 		audio.drop:play()
@@ -235,7 +246,7 @@ function spawn_fig()
 end
 
 function test_lines()
-	local lines_removed = 0
+	local lines_to_remove = {}
 
 	for y = #field, 1, -1 do
 		local all_filled = true
@@ -246,17 +257,11 @@ function test_lines()
 			end
 		end
 		if all_filled then
-			lines_removed = lines_removed + 1
-			table.remove(field, y)
+			table.insert(lines_to_remove, y)
 		end
 	end
-	for i = 1, lines_removed do
-		table.insert(field, 1, {}) 
-		for i=1, field.w do
-			field[1][i] = 0
-		end
-	end
-	return lines_removed
+	
+	return lines_to_remove
 end
 
 -- merges figure into field

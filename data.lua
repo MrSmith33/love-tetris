@@ -67,6 +67,7 @@ game = {
 	fall_interval = 0.7,
 	curr_interval = 0,
 	clearing_pause = 1,
+	lines_to_remove = {},
 
 	score = 0,
 
