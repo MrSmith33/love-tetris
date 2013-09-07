@@ -7,15 +7,15 @@ settings = {
 
 -- block look
 block = {
-	w = 10,
-	h = 10,
+	w = 11,
+	h = 11,
 	offset = 1
 }
 
 -- tetris color scheme
 colors = {
 	{255, 0, 0},
-	{0, 0, 255},
+	{128, 0, 255},
 	{255, 255, 0},
 	{0, 128, 255},
 	{255, 0, 255},
@@ -66,7 +66,7 @@ game = {
 	state = '',--'running', 'clearing', 'game_over', 'spawning'
 	fall_interval = 0.7,
 	curr_interval = 0,
-	clearing_pause = 1,
+	clearing_pause = 0.5,
 	lines_to_remove = {},
 
 	score = 0,

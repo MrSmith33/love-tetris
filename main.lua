@@ -23,15 +23,14 @@ function love.update(dt)
 				game.curr_interval = game.curr_interval + game.fall_interval
 				fall()
 			elseif game.state == 'clearing' then
-				local lines_removed = 0
-				for i = #game.lines_to_remove, 1, -1  do
+				local lines_removed = #game.lines_to_remove
+				for i = 1, #game.lines_to_remove  do
 					table.remove(field, game.lines_to_remove[i])
-					lines_removed = lines_removed + 1
 				end
 				for i = 1, lines_removed do
 					table.insert(field, 1, {}) 
-					for i=1, field.w do
-						field[1][i] = 0
+					for j=1, #field[2] do
+						field[1][j] = 0
 					end
 				end
 				on_lines_removed(lines_removed)
@@ -55,12 +54,15 @@ function love.draw()
 	g.setColor(255, 255, 255)
 	g.print('FPS:'..love.timer.getFPS(), g.getWidth() - 110, 0)
 	g.print('Score:'..game.score, g.getWidth() - 110, 12)
+	
 	for y=1, #figure.next do
 		for x=1, #figure.next[1] do
 			g.print(string.sub(figure.next[y], x, x), g.getWidth() - 90 + (x-1)*12, 36 + (y-1)*12)
 		end
 	end
+
 	draw_field()
+
 	if game.state == 'running' then
 		draw_figure(figure.x, figure.y, draw_block)
 		if settings.shadow then draw_shadow() end
@@ -75,8 +77,9 @@ end
 ------------------------------------------------------------
 function draw_shadow()
 	local shadow_y = figure.y
+
 	while true do
-		if not collision_at(figure.current, figure.x, shadow_y + 1) then
+		if not collides_with_blocks(figure.current, figure.x, shadow_y + 1) then
 			shadow_y = shadow_y + 1
 		else
 			break
@@ -118,12 +121,16 @@ end
 -- x, y [1 .. n]
 function draw_block(x, y, color)
 	if y <1 then return end
+
 	g.setColor(color)
 	local lx = field.offset.x + (x-1)*(block.w + block.offset)
 	local ly = field.offset.y + (y-1)*(block.h + block.offset)
 	g.rectangle("fill", lx, ly, block.w, block.h)
+
 	g.setColor({0,0,0})
-	g.rectangle("fill", lx + block.w/2 - 2, ly + block.h/2 - 2, 4, 4)
+	-- makes nice hole in the figure with any figure size
+	g.rectangle("fill", lx + math.ceil(block.w/4), ly + math.ceil(block.h/4),
+						math.floor(block.w/2 - 0.25), math.floor(block.h/2 - 0.25))
 end
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -165,7 +172,7 @@ function drop()
 end
 
 function fall()
-	if not collision_at(figure.current, figure.x, figure.y + 1) then
+	if not collides_with_blocks(figure.current, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
 		game.curr_interval = game.fall_interval
 		return false
@@ -176,13 +183,13 @@ function fall()
 end
 
 function move_left()
-	if not collision_at(figure.current, figure.x - 1, figure.y) then
+	if not collides_with_blocks(figure.current, figure.x - 1, figure.y) then
 		figure.x = figure.x - 1
 	end
 end
 
 function move_right()
-	if not collision_at(figure.current, figure.x + 1, figure.y) then
+	if not collides_with_blocks(figure.current, figure.x + 1, figure.y) then
 		figure.x = figure.x + 1
 	end
 end
@@ -202,7 +209,7 @@ function rotate_fig_left()
 		end
 	end
 
-	if not collision_at(new_fig, figure.x, figure.y) then
+	if not collides_with_blocks(new_fig, figure.x, figure.y) then
 		new_fig.index = figure.current.index
 		return new_fig
 	end
@@ -213,9 +220,18 @@ end
 -- 
 function on_floor_reached()
 	merge_figure()
+
+	if collides_with_spawn_zone(figure.current, figure.x, figure.y) then
+		game.state = 'game_over'
+		on_game_over()
+		return
+	end
+
 	game.lines_to_remove = test_lines()
+
 	if #game.lines_to_remove > 0 then
 		game.state = 'clearing'
+		game.curr_interval = game.clearing_pause
 	else
 		audio.drop:play()
 		game.state = 'running'
@@ -225,8 +241,8 @@ end
 
 function on_lines_removed(num)
 	if num == 0 then return end
+
 	game.score = game.score + (2^(num-1)*100)
-	game.curr_interval = game.clearing_pause
 	audio.linecleanup:play()
 end
 
@@ -239,7 +255,8 @@ function spawn_fig()
 	figure.next = figures.random_fig()
 	figure.x = figure.spawn.x
 	figure.y = figure.spawn.y
-	if collision_at(figure.current, figure.x, figure.y) then
+
+	if collides_with_blocks(figure.current, figure.x, figure.y) then
 		game.state = 'game_over'
 		on_game_over()
 	end
@@ -278,16 +295,30 @@ end
 ------------------------------------------------------------
 --- Checks
 
--- returns true if figure collides
-function collision_at(fig_to_test, test_x, test_y)
+function collides_with_spawn_zone(fig_to_test, test_x, test_y)
+	return collision_at(fig_to_test, test_x, test_y,
+		function (field_x, field_y)	
+			if field_y < 1 then return true	end 
+		end)
+end
+
+function collides_with_blocks(fig_to_test, test_x, test_y)
+	return collision_at(fig_to_test, test_x, test_y,
+		function (field_x, field_y)	
+			if field[field_y] == nil or
+				field[field_y][field_x] == nil or
+				field[field_y][field_x] ~= 0 then
+				return true
+			end
+		end)
+end
+
+-- returns true if figure collides. tester_fun(field_x, field_y)
+function collision_at(fig_to_test, test_x, test_y, tester_fun)
 	for y = 1, #fig_to_test do
 		for x = 1, fig_to_test[1]:len() do
 			if string.sub(fig_to_test[y], x, x) == '#' then
-				if field[y + test_y - 1] == nil or
-					field[y + test_y - 1][x + test_x - 1] == nil or
-					field[y + test_y - 1][x + test_x - 1] ~= 0 then
-					return true
-				end
+				if tester_fun(x + test_x - 1, y + test_y - 1) then return true end
 			end
 		end
 	end
