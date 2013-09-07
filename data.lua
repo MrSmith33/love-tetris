@@ -2,14 +2,14 @@
 ------ Data
 
 settings = {
-	shadow = true
+	
 }
 
 -- block look
 block = {
 	w = 11,
 	h = 11,
-	offset = 1
+	offset = 1 -- space between blocks
 }
 
 -- tetris color scheme
@@ -31,16 +31,24 @@ init_audio = function ()
 end
 
 audiofiles = {
-	'linecleanup',
+	'clear1',
 	'drop',
-	'gameover'
+	'gameover',
+	--[[
+	'spin',
+	'move',
+	'clear1',
+	'clear2',
+	'clear3',
+	'clear4'
+	]]
 }
 
 audio = {
 }
 
 -- list of possible figures
--- they are colored by its index in 'colors' list
+-- they are colored by their index in 'colors' list
 figures = {
 	{'    ', '####', '    '},
 	{'#  ', '###', '   '},
@@ -61,18 +69,31 @@ figures = {
 	end
 }
 
+rules = {
+	shadow = true,
+	gravity = 0, -- 0-disabled, 1-sticky, 2
+	move_reset = false,
+	spin_reset = false,
+	hard_drop_lock_delay = false,
+	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented
+	wall_kick = false,
+
+}
+
 -- stores game info, such as score, game speed etc.
 game = {
-	state = '',--'running', 'clearing', 'game_over', 'spawning'
-	fall_interval = 0.7,
-	curr_interval = 0,
-	clearing_pause = 0.5,
+	state = '',--'running', 'clearing', 'game_over', 'spawning', 'paused'
+	fall_delay = 0.7,
+	timer = 0,
+	clear_delay = 0.5,
 	lines_to_remove = {},
 
 	score = 0,
+	level = 1,
 
 	init = function()
 		game.score = 0
+		game.level = 1
 		game.curr_interval = 0
 		figure.next = figures.random_fig()
 		spawn_fig()

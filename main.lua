@@ -7,8 +7,9 @@ require 'data'
 
 io.stdout:setvbuf("no")
 
------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 ------ Callbacks
+----------------------------------------------------------------------------------------------------
 
 function love.load()
 	init_audio()
@@ -17,10 +18,10 @@ end
 
 function love.update(dt)
 	if game.state ~= 'game_over' then
-		game.curr_interval = game.curr_interval - dt
-		if game.curr_interval < 0 then
+		game.timer = game.timer - dt
+		if game.timer < 0 then
 			if game.state == 'running' then
-				game.curr_interval = game.curr_interval + game.fall_interval
+				game.timer = game.timer + game.fall_delay
 				fall()
 			elseif game.state == 'clearing' then
 				local lines_removed = #game.lines_to_remove
@@ -44,9 +45,6 @@ function love.update(dt)
 	end
 end
 
------------------------------------------------------------------------------------------------------------------------
------- Draw
-
 g = love.graphics
 
 ------------------------------------------------------------
@@ -57,22 +55,28 @@ function love.draw()
 
 	for y=1, #figure.next do
 		for x=1, #figure.next[1] do
-			g.print(string.sub(figure.next[y], x, x), g.getWidth() - 90 + (x-1)*12, 36 + (y-1)*12)
+			g.print(string.sub(figure.next[y], x, x),
+					g.getWidth() - 90 + (x-1)*12, 36 + (y-1)*12)
 		end
 	end
 
 	draw_field()
 
-	if game.state == 'running' then
+	if game.state == 'running' or game.state == 'paused' then
 		draw_figure(figure.x, figure.y, draw_block)
-		if settings.shadow then draw_shadow() end
+		if rules.shadow then draw_shadow() end
 	elseif game.state == 'game_over' then
 		g.setColor(255, 255, 255)
-		g.printf('Game over', field.offset.x, field.offset.y + (block.h + block.offset)*field.h + 4, 
+		g.printf('Game over', field.offset.x,
+					field.offset.y + (block.h + block.offset)*field.h + 4, 
 					((block.w + block.offset)*field.w), 'center')
 	end
 	
 end
+
+----------------------------------------------------------------------------------------------------
+------ Draw
+----------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------
 function draw_shadow()
@@ -133,8 +137,9 @@ function draw_block(x, y, color)
 						math.floor(block.w/2 - 0.25), math.floor(block.h/2 - 0.25))
 end
 
------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 ------ Logic
+----------------------------------------------------------------------------------------------------
 
 function start_game()
 	field.init()
@@ -150,18 +155,29 @@ function love.keypressed( key, isrepeat )
 		return
 	end
 
-	if key == 'down' then
+	if key == 'p' then
+		if game.state == 'paused' then
+			game.state = 'running'
+		elseif game.state == 'running' then
+			game.state = 'paused'
+		end
+	elseif game.state == 'running' then
+		if key == 'down' then
 		fall()
-	elseif key == 'left' then
-		move_left()
-	elseif key == 'right' then
-		move_right()
-	elseif key == 'up' then
-		local new_fig = rotate_fig_left()
-		if new_fig ~= nil then figure.current = new_fig end
-	elseif key == ' ' then
-		drop()
-	end 
+		elseif key == 'left' then
+			move_left()
+		elseif key == 'right' then
+			move_right()
+		elseif key == 'up' then
+			local new_fig = rotate_fig_left()
+			if not collides_with_blocks(new_fig, figure.x, figure.y) then
+				new_fig.index = figure.current.index
+				figure.current = new_fig
+			end
+		elseif key == ' ' then
+			drop()
+		end 
+	end
 end
 
 ------------------------------------------------------------
@@ -174,7 +190,7 @@ end
 function fall()
 	if not collides_with_blocks(figure.current, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
-		game.curr_interval = game.fall_interval
+		game.timer = game.fall_delay
 		return false
 	else
 		on_floor_reached()
@@ -209,10 +225,7 @@ function rotate_fig_left()
 		end
 	end
 
-	if not collides_with_blocks(new_fig, figure.x, figure.y) then
-		new_fig.index = figure.current.index
-		return new_fig
-	end
+	return new_fig
 end
 
 ------------------------------------------------------------
@@ -231,7 +244,7 @@ function on_floor_reached()
 
 	if #game.lines_to_remove > 0 then
 		game.state = 'clearing'
-		game.curr_interval = game.clearing_pause
+		game.timer = game.clear_delay
 	else
 		audio.drop:play()
 		game.state = 'running'
@@ -243,7 +256,7 @@ function on_lines_removed(num)
 	if num == 0 then return end
 
 	game.score = game.score + (2^(num-1)*100)
-	audio.linecleanup:play()
+	audio.clear1:play()
 end
 
 function on_game_over()
