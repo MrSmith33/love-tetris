@@ -83,7 +83,7 @@ function draw_shadow()
 	local shadow_y = figure.y
 
 	while true do
-		if not collides_with_blocks(figure.current, figure.x, shadow_y + 1) then
+		if not collides_with_blocks(figure.current, field, figure.x, shadow_y + 1) then
 			shadow_y = shadow_y + 1
 		else
 			break
@@ -170,7 +170,7 @@ function love.keypressed( key, isrepeat )
 			move_right()
 		elseif key == 'up' then
 			local new_fig = rotate_fig_left()
-			if not collides_with_blocks(new_fig, figure.x, figure.y) then
+			if not collides_with_blocks(new_fig, field, figure.x, figure.y) then
 				new_fig.index = figure.current.index
 				figure.current = new_fig
 			end
@@ -188,7 +188,7 @@ function drop()
 end
 
 function fall()
-	if not collides_with_blocks(figure.current, figure.x, figure.y + 1) then
+	if not collides_with_blocks(figure.current, field, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
 		game.timer = game.fall_delay
 		return false
@@ -199,13 +199,13 @@ function fall()
 end
 
 function move_left()
-	if not collides_with_blocks(figure.current, figure.x - 1, figure.y) then
+	if not collides_with_blocks(figure.current, field, figure.x - 1, figure.y) then
 		figure.x = figure.x - 1
 	end
 end
 
 function move_right()
-	if not collides_with_blocks(figure.current, figure.x + 1, figure.y) then
+	if not collides_with_blocks(figure.current, field, figure.x + 1, figure.y) then
 		figure.x = figure.x + 1
 	end
 end
@@ -232,9 +232,9 @@ end
 
 -- 
 function on_floor_reached()
-	merge_figure()
+	merge_figure(figure, field)
 
-	if collides_with_spawn_zone(figure.current, figure.x, figure.y) then
+	if collides_with_spawn_zone(figure.current, field, figure.x, figure.y) then
 		game.state = 'game_over'
 		on_game_over()
 		return
@@ -269,7 +269,7 @@ function spawn_fig()
 	figure.x = math.ceil((#field[1])/2) - math.ceil((#figure.current[1])/2) + 1
 	figure.y = -1
 
-	if collides_with_blocks(figure.current, figure.x, figure.y) then
+	if collides_with_blocks(figure.current, field, figure.x, figure.y) then
 		game.state = 'game_over'
 		on_game_over()
 	end
@@ -295,7 +295,7 @@ function test_lines()
 end
 
 -- merges figure into field
-function merge_figure()
+function merge_figure(figure, field)
 	for y = 1, #figure.current do
 		for x = 1, figure.current[1]:len() do
 			if string.sub(figure.current[y], x, x) == '#' then
@@ -308,16 +308,16 @@ end
 ------------------------------------------------------------
 --- Checks
 
-function collides_with_spawn_zone(fig_to_test, test_x, test_y)
+function collides_with_spawn_zone(fig_to_test, field, test_x, test_y)
 	return collision_at(fig_to_test, test_x, test_y,
 		function (field_x, field_y)	
 			if field_y < 1 then return true	end 
 		end)
 end
 
-function collides_with_blocks(fig_to_test, test_x, test_y)
+function collides_with_blocks(fig_to_test, field, test_x, test_y)
 	return collision_at(fig_to_test, test_x, test_y,
-		function (field_x, field_y)	
+		function (field_x, field_y)
 			if field[field_y] == nil or
 				field[field_y][field_x] == nil or
 				field[field_y][field_x] ~= 0 then
