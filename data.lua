@@ -14,14 +14,14 @@ block = {
 
 -- tetris color scheme
 colors = {
-	{255, 0, 0},
-	{128, 0, 255},
-	{255, 255, 0},
+	{0, 255, 255},
+	{0, 0, 255},
+	{255, 128, 0},
 	{0, 128, 255},
 	{255, 0, 255},
-	{0, 255, 255},
-	{255, 255, 255},
-	{0, 255, 0}
+	{0, 255, 0},
+	{255, 0, 0},
+	{128, 0, 128}
 }
 
 init_audio = function ()
@@ -56,28 +56,20 @@ figures = {
 	{'##', '##'},
 	{' ##', '## ', '   '},
 	{'## ', ' ##', '   '},
-	{' # ', '###', '   '},
-
-	random_fig = function()
-		local index = math.random(1, #figures)
-		local figure = {}
-		for _, line in ipairs(figures[index]) do
-			table.insert(figure, line)
-		end
-		figure.index = index
-		return figure
-	end
+	{' # ', '###', '   '}
 }
 
 rules = {
 	shadow = true,
-	gravity = 0, -- 0-disabled, 1-sticky, 2
+	gravity = 0, -- 0-disabled, 1-sticky, 2-cascade
 	move_reset = false,
 	spin_reset = false,
 	hard_drop_lock_delay = false,
 	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented
 	wall_kick = false,
-
+	next_visible = 1,
+	random_generator = 'rg' -- 'stupid'-just math.random, 'rg'-Random Generator using 7-bag,
+								-- 'tgm'
 }
 
 -- stores game info, such as score, game speed etc.
@@ -97,8 +89,26 @@ game = {
 		game.score = 0
 		game.level = 1
 		game.curr_interval = 0
-		figure.next = figures.random_fig()
+		game.history = {}
+		game.random_gen_data = {}
+		figure.next = game.random_fig()
 		spawn_fig()
+	end,
+
+	history = {},
+	random_gen_data = {},
+
+	random_fig = function()
+		local result = random_generators[rules.random_generator](game.history, game.random_gen_data)
+
+		local figure = {}
+		for _, line in ipairs(figures[result]) do
+			table.insert(figure, line)
+		end
+		figure.index = result
+		table.remove(game.history)
+		table.insert(game.history, 1, result)
+		return figure
 	end
 }
 
@@ -126,3 +136,32 @@ figure = {
 	current = {},
 	next = {},
 }
+
+random_generators = {
+	stupid = function(history, data)
+		local index = math.random(1, #figures)
+		return index
+	end,
+	rg = function(history, bag)
+		if #bag == 0 then
+			for i=1, #figures do
+				bag[i] = i
+			end
+			print(#bag)
+			shuffle_array(bag)
+		end
+		result = bag[1]
+		table.remove(bag, 1)
+		
+		return result
+	end
+}
+
+function shuffle_array(array)
+	local counter = #array
+    while counter > 1 do
+        local index = math.random(counter)
+        array[counter], array[index] = array[index], array[counter]
+        counter = counter - 1
+    end
+end

@@ -275,7 +275,7 @@ end
 
 function spawn_fig()
 	figure.current = figure.next
-	figure.next = figures.random_fig()
+	figure.next = game.random_fig()
 	figure.x = math.ceil((#field[1])/2) - math.ceil((#figure.current[1])/2) + 1
 	figure.y = -1
 
