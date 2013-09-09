@@ -53,6 +53,12 @@ function love.draw()
 	g.print('FPS:'..love.timer.getFPS(), g.getWidth() - 110, 0)
 	g.print('Score:'..game.score, g.getWidth() - 110, 12)
 
+	g.print('Move: left, right, down', g.getWidth() - 300, 0)
+	g.print('Rotate: up', g.getWidth() - 300, 12)
+	g.print('Drop: space', g.getWidth() - 300, 24)
+	g.print('Pause: P', g.getWidth() - 300, 36)
+	g.print('Restart: R (after "Game over")', g.getWidth() - 300, 48)
+
 	for y=1, #figure.next do
 		for x=1, #figure.next[1] do
 			g.print(string.sub(figure.next[y], x, x),
@@ -65,12 +71,16 @@ function love.draw()
 	if game.state == 'running' or game.state == 'paused' then
 		draw_figure(figure.x, figure.y, draw_block)
 		if rules.shadow then draw_shadow() end
-	elseif game.state == 'game_over' then
-		g.setColor(255, 255, 255)
-		g.printf('Game over', field.offset.x,
-					field.offset.y + (block.h + block.offset)*field.h + 4, 
-					((block.w + block.offset)*field.w), 'center')
 	end
+
+	g.setColor(255, 255, 255)
+	string = game.state_names[game.state]
+	if string ~= nil then
+		g.printf(string, field.offset.x,
+				field.offset.y + (block.h + block.offset)*field.h + 4, 
+				((block.w + block.offset)*field.w), 'center')
+	end
+	
 	
 end
 

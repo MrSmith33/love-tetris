@@ -83,6 +83,8 @@ rules = {
 -- stores game info, such as score, game speed etc.
 game = {
 	state = '',--'running', 'clearing', 'game_over', 'spawning', 'paused'
+	state_names = {running = 'Running', clearing = 'Clearing some mess',
+					game_over = 'Game is over', paused = 'Paused'},
 	fall_delay = 0.7,
 	timer = 0,
 	clear_delay = 0.5,
