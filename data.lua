@@ -60,6 +60,7 @@ figures = {
 }
 
 rules = {
+	fps = 60,
 	shadow = true,
 	gravity = 0, -- 0-disabled, 1-sticky, 2-cascade
 	move_reset = false,
@@ -77,6 +78,9 @@ game = {
 	state = '',--'running', 'clearing', 'game_over', 'spawning', 'paused'
 	state_names = {running = 'Running', clearing = 'Clearing some mess',
 					game_over = 'Game is over', paused = 'Paused'},
+	frame_delay = 1/60,
+	current_frame = 1,
+	speed = {delay = 60, modifier = 1},
 	fall_delay = 0.7,
 	timer = 0,
 	clear_delay = 0.5,
@@ -91,6 +95,8 @@ game = {
 		game.curr_interval = 0
 		game.history = {}
 		game.random_gen_data = {}
+		game.frame_delay = 1/rules.fps
+		game.frame_timer = 0
 		figure.next = game.random_fig()
 		spawn_fig()
 	end,

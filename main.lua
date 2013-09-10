@@ -18,29 +18,10 @@ end
 
 function love.update(dt)
 	if game.state ~= 'game_over' then
-		game.timer = game.timer - dt
-		if game.timer < 0 then
-			if game.state == 'running' then
-				game.timer = game.timer + game.fall_delay
-				fall()
-			elseif game.state == 'clearing' then
-				local lines_removed = #game.lines_to_remove
-				for i = 1, #game.lines_to_remove  do
-					table.remove(field, game.lines_to_remove[i])
-				end
-				for i = 1, lines_removed do
-					table.insert(field, 1, {}) 
-					for j=1, #field[2] do
-						field[1][j] = 0
-					end
-				end
-				on_lines_removed(lines_removed)
-				game.state = 'running'
-				spawn_fig()
-			elseif game.state == 'spawning' then
-				game.state = 'running'
-				spawn_fig()
-			end
+		game.timer = game.timer + dt
+		if game.timer >= game.frame_delay then
+			do_frame()
+			game.timer = game.timer - game.frame_delay
 		end
 	end
 end
@@ -69,8 +50,8 @@ function love.draw()
 	draw_field()
 
 	if game.state == 'running' or game.state == 'paused' then
-		draw_figure(figure.x, figure.y, draw_block)
 		if rules.shadow then draw_shadow() end
+		draw_figure(figure.x, figure.y, draw_block)
 	end
 
 	g.setColor(255, 255, 255)
@@ -101,7 +82,7 @@ function draw_shadow()
 	end
 
 	draw_figure(figure.x, shadow_y, function (x, y, color)
-		draw_block(x, y, {color[1], color[2], color[3], 64})
+		draw_block(x, y, {0,0,0}, {255, 255, 255, 64})
 	end)
 end
 
@@ -133,15 +114,16 @@ end
 
 ------------------------------------------------------------
 -- x, y [1 .. n]
-function draw_block(x, y, color)
+function draw_block(x, y, color, hole_color)
 	if y <1 then return end
+	hole_color = hole_color or {0,0,0}
 
 	g.setColor(color)
 	local lx = field.offset.x + (x-1)*(block.w + block.offset)
 	local ly = field.offset.y + (y-1)*(block.h + block.offset)
 	g.rectangle("fill", lx, ly, block.w, block.h)
 
-	g.setColor({0,0,0})
+	g.setColor(hole_color)
 	-- makes nice hole in the figure with any figure size
 	g.rectangle("fill", lx + math.ceil(block.w/4), ly + math.ceil(block.h/4),
 						math.floor(block.w/2 - 0.25), math.floor(block.h/2 - 0.25))
@@ -155,6 +137,33 @@ function start_game()
 	field.init()
 	game.init()
 	game.state = 'running'
+end
+
+function do_frame()
+	if game.state == 'running' then
+		game.current_frame = game.current_frame + 1
+		if game.current_frame == game.speed.delay-1 then
+			fall()
+			game.current_frame = 1
+		end
+	elseif game.state == 'clearing' then
+		local lines_removed = #game.lines_to_remove
+		for i = 1, #game.lines_to_remove  do
+			table.remove(field, game.lines_to_remove[i])
+		end
+		for i = 1, lines_removed do
+			table.insert(field, 1, {}) 
+			for j=1, #field[2] do
+				field[1][j] = 0
+			end
+		end
+		on_lines_removed(lines_removed)
+		game.state = 'running'
+		spawn_fig()
+	elseif game.state == 'spawning' then
+		game.state = 'running'
+		spawn_fig()
+	end
 end
 
 function love.keypressed( key, isrepeat )
@@ -200,7 +209,7 @@ end
 function fall()
 	if not collides_with_blocks(figure.current, field, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
-		game.timer = game.fall_delay
+		game.current_frame = 1 --reset lock delay
 		return false
 	else
 		on_floor_reached()
@@ -254,7 +263,7 @@ function on_floor_reached()
 
 	if #game.lines_to_remove > 0 then
 		game.state = 'clearing'
-		game.timer = game.clear_delay
+		--clear delay
 	else
 		audio.drop:play()
 		game.state = 'running'
