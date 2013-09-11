@@ -142,28 +142,33 @@ end
 function do_frame()
 	if game.state == 'running' then
 		game.current_frame = game.current_frame + 1
-		if game.current_frame == game.speed.delay-1 then
-			fall()
-			game.current_frame = 1
-		end
-	elseif game.state == 'clearing' then
-		local lines_removed = #game.lines_to_remove
-		for i = 1, #game.lines_to_remove  do
-			table.remove(field, game.lines_to_remove[i])
-		end
-		for i = 1, lines_removed do
-			table.insert(field, 1, {}) 
-			for j=1, #field[2] do
-				field[1][j] = 0
+		if game.current_frame >= game.speed.delay-1 then
+			for i=1, game.speed.distance do
+				fall()
 			end
 		end
-		on_lines_removed(lines_removed)
+	elseif game.state == 'clearing' then
+		remove_lines()
 		game.state = 'running'
 		spawn_fig()
 	elseif game.state == 'spawning' then
 		game.state = 'running'
 		spawn_fig()
 	end
+end
+
+function remove_lines()
+	local lines_removed = #game.lines_to_remove
+	for i = 1, #game.lines_to_remove  do
+		table.remove(field, game.lines_to_remove[i])
+	end
+	for i = 1, lines_removed do
+		table.insert(field, 1, {}) 
+		for j=1, #field[2] do
+			field[1][j] = 0
+		end
+	end
+	on_lines_removed(lines_removed)
 end
 
 function love.keypressed( key, isrepeat )
@@ -192,6 +197,9 @@ function love.keypressed( key, isrepeat )
 			if not collides_with_blocks(new_fig, field, figure.x, figure.y) then
 				new_fig.index = figure.current.index
 				figure.current = new_fig
+				if rules.spin_reset then
+					game.current_frame = 1
+				end
 			end
 		elseif key == ' ' then
 			drop()
@@ -206,7 +214,7 @@ function drop()
 	end
 end
 
-function fall()
+function fall()-- todo check if floor is reached
 	if not collides_with_blocks(figure.current, field, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
 		game.current_frame = 1 --reset lock delay
@@ -221,11 +229,17 @@ function move_left()
 	if not collides_with_blocks(figure.current, field, figure.x - 1, figure.y) then
 		figure.x = figure.x - 1
 	end
+	if rules.move_reset then
+		game.current_frame = 1
+	end
 end
 
 function move_right()
 	if not collides_with_blocks(figure.current, field, figure.x + 1, figure.y) then
 		figure.x = figure.x + 1
+	end
+	if rules.move_reset then
+		game.current_frame = 1
 	end
 end
 
@@ -251,23 +265,27 @@ end
 
 -- 
 function on_floor_reached()
-	merge_figure(figure, field)
-
-	if collides_with_spawn_zone(figure.current, field, figure.x, figure.y) then
-		game.state = 'game_over'
-		on_game_over()
-		return
-	end
-
-	game.lines_to_remove = test_lines()
-
-	if #game.lines_to_remove > 0 then
-		game.state = 'clearing'
-		--clear delay
+	if rules.lock_delay > 0 then
+		game.action_delay = rules.lock_delay
 	else
-		audio.drop:play()
-		game.state = 'running'
-		spawn_fig()
+		merge_figure(figure, field)
+
+		if collides_with_spawn_zone(figure.current, field, figure.x, figure.y) then
+			game.state = 'game_over'
+			on_game_over()
+			return
+		end
+
+		game.lines_to_remove = test_lines()
+
+		if #game.lines_to_remove > 0 then
+			game.state = 'clearing'
+			--clear delay
+		else
+			audio.drop:play()
+			game.state = 'running'
+			spawn_fig()
+		end
 	end
 end
 
@@ -322,10 +340,15 @@ function merge_figure(figure, field)
 			end 
 		end
 	end
+	figure.current = nil
 end
 
 ------------------------------------------------------------
 --- Checks
+
+function is_on_floor()
+	return collides_with_blocks(figure.current, field, figure.x, figure.y+1)
+end
 
 function collides_with_spawn_zone(fig_to_test, field, test_x, test_y)
 	return collision_at(fig_to_test, test_x, test_y,

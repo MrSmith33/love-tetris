@@ -66,24 +66,29 @@ rules = {
 	move_reset = false,
 	spin_reset = false,
 	hard_drop_lock_delay = false,
+	lock_delay = 30,
 	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented
 	wall_kick = false,
 	next_visible = 1,
-	random_generator = 'rg' -- 'stupid'-just math.random, 'rg'-Random Generator using 7-bag,
+	randomizer = 'rg' -- 'stupid'-just math.random, 'rg'-Random Generator using 7-bag,
 								-- 'tgm'
 }
 
 -- stores game info, such as score, game speed etc.
 game = {
-	state = '',--'running', 'clearing', 'game_over', 'spawning', 'paused'
+	state = '',--'running', 'clearing', 'game_over', 'spawning', 'paused', 'on_floor'(when lock delay>0)
 	state_names = {running = 'Running', clearing = 'Clearing some mess',
 					game_over = 'Game is over', paused = 'Paused'},
-	frame_delay = 1/60,
-	current_frame = 1,
-	speed = {delay = 60, modifier = 1},
+	timer = 0, --in seconds
+	frame_delay = 1/60, -- defines framerate
+
+	current_frame = 1, -- in frames
+	action_delay, -- when next action(drop, clearline, spawn, etc) occurs. In frames.
+	speed = {delay = 64, distance = 1}, -- delay with which figure fall occurs.
+
 	fall_delay = 0.7,
-	timer = 0,
 	clear_delay = 0.5,
+
 	lines_to_remove = {},
 
 	score = 0,
@@ -105,7 +110,7 @@ game = {
 	random_gen_data = {},
 
 	random_fig = function()
-		local result = random_generators[rules.random_generator](game.history, game.random_gen_data)
+		local result = randomizers[rules.randomizer](game.history, game.random_gen_data)
 
 		local figure = {}
 		for _, line in ipairs(figures[result]) do
@@ -143,7 +148,7 @@ figure = {
 	next = {},
 }
 
-random_generators = {
+randomizers = {
 	stupid = function(history, data)
 		local index = math.random(1, #figures)
 		return index
@@ -153,7 +158,6 @@ random_generators = {
 			for i=1, #figures do
 				bag[i] = i
 			end
-			print(#bag)
 			shuffle_array(bag)
 		end
 		result = bag[1]
