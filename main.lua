@@ -17,7 +17,7 @@ function love.load()
 end
 
 function love.update(dt)
-	if game.state ~= 'game_over' then
+	if game.state ~= 'game_over' and game.state ~= 'paused' then
 		game.timer = game.timer + dt
 		if game.timer >= game.frame_delay then
 			do_frame()
@@ -49,20 +49,18 @@ function love.draw()
 
 	draw_field()
 
-	if game.state == 'running' or game.state == 'paused' then
+	if not (game.state == 'paused') then
 		if rules.shadow then draw_shadow() end
 		draw_figure(figure.x, figure.y, draw_block)
 	end
 
 	g.setColor(255, 255, 255)
-	string = game.state_names[game.state]
-	if string ~= nil then
-		g.printf(string, field.offset.x,
+	local str = game.state_names[game.state]
+	if str ~= nil then
+		g.printf(str, field.offset.x,
 				field.offset.y + (block.h + block.offset)*field.h + 4, 
 				((block.w + block.offset)*field.w), 'center')
 	end
-	
-	
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -136,25 +134,136 @@ end
 function start_game()
 	field.init()
 	game.init()
-	game.state = 'running'
+	game.state = 'in_air'
 end
 
 function do_frame()
-	if game.state == 'running' then
-		game.current_frame = game.current_frame + 1
-		if game.current_frame >= game.speed.delay-1 then
-			for i=1, game.speed.distance do
-				fall()
+	local gravity = game.gravities[game.gravity]
+
+	if game.hold_dir ~= 0 then
+		game.hold_timer = game.hold_timer + 1
+		if game.hold_timer >= rules.autorepeat_delay then
+			game.autorepeat_timer = game.autorepeat_timer + 1
+
+			if game.autorepeat_timer >= rules.autorepeat_interval then
+				move(game.hold_dir)
+				game.autorepeat_timer = 1
 			end
 		end
-	elseif game.state == 'clearing' then
+	end
+
+	if game.state == 'in_air' and game.frame >= gravity.delay then
+		for i=1, gravity.distance do
+			fall()
+		end
+		if is_on_floor() then
+			game.state = 'on_floor'
+		end
+	elseif game.state == 'on_floor' and
+			(game.frame >= rules.lock_delay) then
+		lock() -- can cause game over
+	elseif game.state == 'clearing' and game.frame >= rules.clear_delay then
 		remove_lines()
-		game.state = 'running'
-		spawn_fig()
+		game.state = 'spawning'
 	elseif game.state == 'spawning' then
-		game.state = 'running'
+		game.state = 'in_air'
 		spawn_fig()
 	end
+
+	game.frame = game.frame + 1
+end
+
+function love.keypressed(key, isrepeat)
+	if game.state == 'game_over' then 
+		if key == 'r' then
+			start_game()
+		end
+		return
+	end
+
+	if key == 'p' then
+		if game.state == 'paused' then
+			game.state = game.last_state
+		else
+			game.last_state = game.state
+			game.state = 'paused'
+		end
+	elseif game.state ~= 'paused' then
+		if key == 'down' then
+			game.gravity = 2
+		elseif key == 'left' then
+			move(-1)
+			game.hold_dir = -1
+		elseif key == 'right' then
+			move(1)
+			game.hold_dir = 1
+		elseif key == 'up' then
+			local new_fig = rotate_fig_left()
+
+			if not collides_with_blocks(new_fig, field, figure.x, figure.y) then
+				new_fig.index = figure.current.index
+				figure.current = new_fig
+
+				if rules.spin_reset then
+					game.frame = 1
+				end
+
+				if is_on_floor() then
+					game.state = 'on_floor'
+				else
+					game.state = 'in_air'
+				end
+			end
+		elseif key == ' ' then
+			hard_drop()
+		end 
+	end
+end
+
+function love.keyreleased(key, isrepeat)
+	if key == 'down' then
+		game.gravity = 1
+	elseif key == 'left' then
+		if love.keyboard.isDown('right') then
+			game.hold_dir = 1
+		else
+			game.hold_dir = 0
+			game.hold_timer = 1
+			game.autorepeat_timer = 1
+		end
+	elseif key == 'right' then
+		if love.keyboard.isDown('left') then
+			game.hold_dir = -1
+		else
+			game.hold_dir = 0
+			game.hold_timer = 1
+			game.autorepeat_timer = 1
+		end
+	end
+end
+
+-- 
+function lock()
+	merge_figure(figure, field)
+
+	if collides_with_spawn_zone(figure.current, field, figure.x, figure.y) then
+		game.state = 'game_over' -- [partial] lock out
+		on_game_over()
+		return
+	end
+
+	game.lines_to_remove = full_lines()
+
+	if #game.lines_to_remove > 0 then
+		game.state = 'clearing'
+	else
+		audio.drop:play()
+		game.state = 'spawning'
+	end
+end
+
+function on_game_over()
+	audio.gameover:play()
 end
 
 function remove_lines()
@@ -168,78 +277,49 @@ function remove_lines()
 			field[1][j] = 0
 		end
 	end
+
 	on_lines_removed(lines_removed)
 end
 
-function love.keypressed( key, isrepeat )
-	if game.state == 'game_over' then 
-		if key == 'r' then
-			start_game()
-		end
-		return
-	end
+function on_lines_removed(num)
+	if num == 0 then return end
 
-	if key == 'p' then
-		if game.state == 'paused' then
-			game.state = 'running'
-		elseif game.state == 'running' then
-			game.state = 'paused'
-		end
-	elseif game.state == 'running' then
-		if key == 'down' then
-		fall()
-		elseif key == 'left' then
-			move_left()
-		elseif key == 'right' then
-			move_right()
-		elseif key == 'up' then
-			local new_fig = rotate_fig_left()
-			if not collides_with_blocks(new_fig, field, figure.x, figure.y) then
-				new_fig.index = figure.current.index
-				figure.current = new_fig
-				if rules.spin_reset then
-					game.current_frame = 1
-				end
-			end
-		elseif key == ' ' then
-			drop()
-		end 
-	end
+	game.score = game.score + (2^(num-1)*100)
+	audio.clear1:play()
 end
 
 ------------------------------------------------------------
-function drop()
+function hard_drop()
 	while true do
-		if fall() then return end
+		if fall() then break end
 	end
+
+	if not rules.hard_drop_lock_delay then lock() end
 end
 
 function fall()-- todo check if floor is reached
 	if not collides_with_blocks(figure.current, field, figure.x, figure.y + 1) then
 		figure.y = figure.y + 1
-		game.current_frame = 1 --reset lock delay
+		game.frame = 1 --reset lock delay
 		return false
 	else
-		on_floor_reached()
 		return true
 	end
 end
 
-function move_left()
-	if not collides_with_blocks(figure.current, field, figure.x - 1, figure.y) then
-		figure.x = figure.x - 1
+function move(dx)
+	if not collides_with_blocks(figure.current, field, figure.x + dx, figure.y) then
+		figure.x = figure.x + dx
 	end
-	if rules.move_reset then
-		game.current_frame = 1
-	end
-end
 
-function move_right()
-	if not collides_with_blocks(figure.current, field, figure.x + 1, figure.y) then
-		figure.x = figure.x + 1
+	if is_on_floor() then
+		game.state = 'on_floor'
+	else
+		game.state = 'in_air'
 	end
+
 	if rules.move_reset then
-		game.current_frame = 1
+		game.frame = 1
 	end
 end
 
@@ -263,56 +343,15 @@ end
 
 ------------------------------------------------------------
 
--- 
-function on_floor_reached()
-	if rules.lock_delay > 0 then
-		game.action_delay = rules.lock_delay
-	else
-		merge_figure(figure, field)
-
-		if collides_with_spawn_zone(figure.current, field, figure.x, figure.y) then
-			game.state = 'game_over'
-			on_game_over()
-			return
-		end
-
-		game.lines_to_remove = test_lines()
-
-		if #game.lines_to_remove > 0 then
-			game.state = 'clearing'
-			--clear delay
-		else
-			audio.drop:play()
-			game.state = 'running'
-			spawn_fig()
-		end
-	end
-end
-
-function on_lines_removed(num)
-	if num == 0 then return end
-
-	game.score = game.score + (2^(num-1)*100)
-	audio.clear1:play()
-end
-
-function on_game_over()
-	audio.gameover:play()
-end
 
 function spawn_fig()
 	figure.current = figure.next
 	figure.next = game.random_fig()
 	figure.x = math.ceil((#field[1])/2) - math.ceil((#figure.current[1])/2) + 1
 	figure.y = -1
-
-	if collides_with_blocks(figure.current, field, figure.x, figure.y) then
-		game.state = 'game_over'
-		on_game_over()
-	end
 end
 
-function test_lines()
+function full_lines()
 	local lines_to_remove = {}
 
 	for y = #field, 1, -1 do
@@ -334,13 +373,12 @@ end
 -- merges figure into field
 function merge_figure(figure, field)
 	for y = 1, #figure.current do
-		for x = 1, figure.current[1]:len() do
+		for x = 1, #figure.current[1] do
 			if string.sub(figure.current[y], x, x) == '#' then
 				field[y+figure.y - 1][x+figure.x - 1] = figure.current.index
 			end 
 		end
 	end
-	figure.current = nil
 end
 
 ------------------------------------------------------------

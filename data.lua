@@ -7,18 +7,18 @@ settings = {
 
 -- block look
 block = {
-	w = 11,
-	h = 11,
+	w = 15,
+	h = 15,
 	offset = 1 -- space between blocks
 }
 
 -- tetris color scheme
 colors = {
 	{0, 255, 255},
-	{0, 0, 255},
+	{32, 64, 255},
 	{255, 128, 0},
-	{0, 128, 255},
-	{255, 0, 255},
+	{255, 255, 16},
+	{255, 16, 255},
 	{0, 255, 0},
 	{255, 0, 0},
 	{128, 0, 128}
@@ -60,34 +60,49 @@ figures = {
 }
 
 rules = {
-	fps = 60,
-	shadow = true,
-	gravity = 0, -- 0-disabled, 1-sticky, 2-cascade
-	move_reset = false,
-	spin_reset = false,
-	hard_drop_lock_delay = false,
-	lock_delay = 30,
+	fps = 60,				-- frames per second
+	shadow = true, 			-- shadow piece
+	gravity = 0,			-- 0-disabled, 1-sticky, 2-cascade (only 0 implemented)
+	next_visible = 1, 		-- number of preview pieces
+	move_reset = false,		-- reset timer on horizontal moves
+	spin_reset = false,		-- reset timer on rotation
+	hard_drop_lock_delay = false, -- delay piece locking after hard drop
+	wall_kick = false, 		-- wall kicks (not implemented)
+
+	frame_delay = 1/60, 	-- defines framerate
+	lock_delay = 30, 		-- delay before piece locks
+	spawn_delay = 1, 		-- delay before piece spawns
+	clear_delay = 10, 		-- delay after piece locks and before next piece spawns
+	autorepeat_delay = 15, 	-- initilal delay
+	autorepeat_interval = 4, -- delay between moves
+
+	playfield_width = 10,	-- width of the playfield.
+	playfield_height = 20,	-- height of the playfield. 2 invisible rows will be added.
+
 	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented
-	wall_kick = false,
-	next_visible = 1,
-	randomizer = 'rg' -- 'stupid'-just math.random, 'rg'-Random Generator using 7-bag,
-								-- 'tgm'
+	randomizer = 'rg',-- 'stupid'-just math.random, 'rg'-7-bag, 'tgm'(not implemented)
+
+	soft_gravity = {delay = 3, distance = 1} -- G = distance / delay. Params of the soft drop.
+	-- delay means how frequent will piece fall. distance - number of blocks.
 }
 
 -- stores game info, such as score, game speed etc.
 game = {
 	state = '',--'running', 'clearing', 'game_over', 'spawning', 'paused', 'on_floor'(when lock delay>0)
-	state_names = {running = 'Running', clearing = 'Clearing some mess',
-					game_over = 'Game is over', paused = 'Paused'},
+	state_names = {on_floor = 'On floor', clearing = 'Clearing full lines',
+					game_over = 'Game over', paused = 'Paused', in_air = 'Falling', spawning = 'Spawning'},
+	last_state = '', -- stores state before pausing
+
 	timer = 0, --in seconds
-	frame_delay = 1/60, -- defines framerate
+	
+	frame = 1, -- in frames
+	autorepeat_timer = 1, -- in frames
+	hold_timer = 1, --in frames, frames since left or right is holded
 
-	current_frame = 1, -- in frames
-	action_delay, -- when next action(drop, clearline, spawn, etc) occurs. In frames.
-	speed = {delay = 64, distance = 1}, -- delay with which figure fall occurs.
+	gravity = 1,
+	gravities = {{delay = 64, distance = 1}, rules.soft_gravity}, -- delay with which figure fall occurs.
 
-	fall_delay = 0.7,
-	clear_delay = 0.5,
+	hold_dir = 0, -- -1 left, 1 right, 0 none
 
 	lines_to_remove = {},
 
@@ -98,10 +113,11 @@ game = {
 		game.score = 0
 		game.level = 1
 		game.curr_interval = 0
-		game.history = {}
-		game.random_gen_data = {}
 		game.frame_delay = 1/rules.fps
 		game.frame_timer = 0
+		game.gravities = {{delay = 64, distance = 1}, rules.soft_gravity}
+		game.history = {}
+		game.random_gen_data = {}
 		figure.next = game.random_fig()
 		spawn_fig()
 	end,
@@ -127,11 +143,13 @@ game = {
 -- also stores blocks as two-dimentional array
 -- '1' means no block, others are blocks and colored by the 'colors' table
 field = {
-	w = 10,
-	h = 20,
+	w = 0,
+	h = 0,
 	offset = {x = 100, y = 100},
 
 	init = function ()
+		field.w = rules.playfield_width
+		field.h = rules.playfield_height
 		for y = -1, field.h do
 			field[y] = {}
 			for x = 1, field.w do
@@ -142,8 +160,8 @@ field = {
 }
 
 figure = {
-	x = 4,
-	y = -1,
+	x = 0,
+	y = 0,
 	current = {},
 	next = {},
 }
