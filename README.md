@@ -15,6 +15,7 @@ Highly customizable tetris made with love2d.
 
 ###Version 0.6
 - randomizer - "Random Generator"
+
 ###Version 0.7
 - Configurable key autorepeat
 - Frame based logic
