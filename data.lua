@@ -1,10 +1,6 @@
 -----------------------------------------------------------------------------------------------------------------------
 ------ Data
 
-settings = {
-	
-}
-
 -- block look
 block = {
 	w = 15,
@@ -145,7 +141,7 @@ game = {
 field = {
 	w = 0,
 	h = 0,
-	offset = {x = 100, y = 100},
+	offset = {x = 20, y = 100},
 
 	init = function ()
 		field.w = rules.playfield_width
@@ -163,7 +159,7 @@ figure = {
 	x = 0,
 	y = 0,
 	current = {},
-	next = {},
+	next = {}, -- array of figures
 }
 
 randomizers = {

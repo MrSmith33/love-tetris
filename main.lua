@@ -31,8 +31,8 @@ g = love.graphics
 ------------------------------------------------------------
 function love.draw()
 	g.setColor(255, 255, 255)
-	g.print('FPS:'..love.timer.getFPS(), g.getWidth() - 110, 0)
-	g.print('Score:'..game.score, g.getWidth() - 110, 12)
+	g.print('FPS:'..love.timer.getFPS(), 20, 0)
+	g.print('Score:'..game.score, 20, 12)
 
 	g.print('Move: left, right, down', g.getWidth() - 300, 0)
 	g.print('Rotate: up', g.getWidth() - 300, 12)
@@ -43,7 +43,7 @@ function love.draw()
 	for y=1, #figure.next do
 		for x=1, #figure.next[1] do
 			g.print(string.sub(figure.next[y], x, x),
-					g.getWidth() - 90 + (x-1)*12, 36 + (y-1)*12)
+					20 + (x-1)*12, 36 + (y-1)*12)
 		end
 	end
 
