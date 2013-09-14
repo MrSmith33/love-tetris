@@ -1,20 +1,24 @@
 love-tetris
 ===========
 
-Highly customizable tetris made with love2d.
+Highly customizable tetris made with [love2d](https://love2d.org/).
 
-###Currently implemented features:
-- Moving
-- Gravitation
-- Rotaion
-- Score
-- Drop
-- Colored figures
-- Line clearing
-- Shadow of the figure
+All settings are located in __data.lua__ in __rules__ table. You can also edit __block__ and __colors__ tables.
 
-###Version 0.6
-- randomizer - "Random Generator"
+###TODO's:
+- Random generators
+- Sticky and cascade gravity
+- Piece holding
+- Scoring system and combos
+- Additional optional figures
+- Customizable color scheme
+- Difficulty encreasing
+- Choosable game modes
+- Settings screen and game menu
+
+
+###Done in head version:
+- Configurable number of figure previews
 
 ###Version 0.7
 - Configurable key autorepeat
@@ -27,13 +31,15 @@ Highly customizable tetris made with love2d.
 - Added playfield size parameter to rules table
 - Configurable soft drop gravity speed
 
-###TODO's:
-- Random generators
-- Sticky and cascade gravity
-- Configurable number of figure previews
-- Piece holding
-- Scoring system and combos
-- Additional optional figures
-- Customizable color scheme
-- Difficulty encreasing
-- Choosable game modes
+###Version 0.6
+- randomizer - "Random Generator"
+
+###Version 0.1-0.5
+- Moving
+- Gravitation
+- Rotaion
+- Score
+- Drop
+- Colored figures
+- Line clearing
+- Shadow of the figure
