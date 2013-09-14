@@ -22,7 +22,7 @@ colors = {
 
 init_audio = function ()
 	for i,v in pairs(audiofiles) do
-		audio[v] = love.audio.newSource(v..'.ogg', 'static')
+		audio[v] = love.audio.newSource('res/'..v..'.ogg', 'static')
 	end
 end
 
