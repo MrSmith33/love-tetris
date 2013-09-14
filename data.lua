@@ -59,7 +59,7 @@ rules = {
 	fps = 60,				-- frames per second
 	shadow = true, 			-- shadow piece
 	gravity = 0,			-- 0-disabled, 1-sticky, 2-cascade (only 0 implemented)
-	next_visible = 1, 		-- number of preview pieces
+	next_visible = 2, 		-- number of preview pieces
 	move_reset = false,		-- reset timer on horizontal moves
 	spin_reset = false,		-- reset timer on rotation
 	hard_drop_lock_delay = false, -- delay piece locking after hard drop
@@ -114,7 +114,10 @@ game = {
 		game.gravities = {{delay = 64, distance = 1}, rules.soft_gravity}
 		game.history = {}
 		game.random_gen_data = {}
-		figure.next = game.random_fig()
+		figure.next = {}
+		for i=1, rules.next_visible do
+			table.insert(figure.next, game.random_fig())
+		end
 		spawn_fig()
 	end,
 

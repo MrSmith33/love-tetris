@@ -40,18 +40,12 @@ function love.draw()
 	g.print('Pause: P', g.getWidth() - 300, 36)
 	g.print('Restart: R (after "Game over")', g.getWidth() - 300, 48)
 
-	for y=1, #figure.next do
-		for x=1, #figure.next[1] do
-			g.print(string.sub(figure.next[y], x, x),
-					20 + (x-1)*12, 36 + (y-1)*12)
-		end
-	end
-
 	draw_field()
+	draw_preview(figure.next)
 
 	if not (game.state == 'paused') then
 		if rules.shadow then draw_shadow() end
-		draw_figure(figure.x, figure.y, draw_block)
+		draw_figure(figure.x, figure.y, figure.current, draw_block)
 	end
 
 	g.setColor(255, 255, 255)
@@ -79,17 +73,17 @@ function draw_shadow()
 		end
 	end
 
-	draw_figure(figure.x, shadow_y, function (x, y, color)
+	draw_figure(figure.x, shadow_y, figure.current, function (x, y, color)
 		draw_block(x, y, {0,0,0}, {255, 255, 255, 64})
 	end)
 end
 
 ------------------------------------------------------------
-function draw_figure(_x, _y, drawer_func)
-	for y = 1, #figure.current do
-		for x = 1, #figure.current[1] do
-			if string.sub(figure.current[y], x, x) == '#' then
-				drawer_func(_x + x - 1, _y + y - 1, colors[figure.current.index])
+function draw_figure(_x, _y, figure, drawer_func)
+	for y = 1, #figure do
+		for x = 1, #figure[1] do
+			if string.sub(figure[y], x, x) == '#' then
+				drawer_func(_x + x - 1, _y + y - 1, colors[figure.index])
 			end
 		end
 	end
@@ -125,6 +119,12 @@ function draw_block(x, y, color, hole_color)
 	-- makes nice hole in the figure with any figure size
 	g.rectangle("fill", lx + math.ceil(block.w/4), ly + math.ceil(block.h/4),
 						math.floor(block.w/2 - 0.25), math.floor(block.h/2 - 0.25))
+end
+
+function draw_preview(next_pieces)
+	for k,v in pairs(next_pieces) do
+		draw_figure(field.w+2, (k-1)*3+1, v, draw_block)
+	end
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -345,8 +345,13 @@ end
 
 
 function spawn_fig()
-	figure.current = figure.next
-	figure.next = game.random_fig()
+	local current = table.remove(figure.next, 1)
+	if current then
+		figure.current = current
+		table.insert(figure.next, game.random_fig())
+	else
+		figure.current = game.random_fig()
+	end
 	figure.x = math.ceil((#field[1])/2) - math.ceil((#figure.current[1])/2) + 1
 	figure.y = -1
 end
