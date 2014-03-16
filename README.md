@@ -1,6 +1,10 @@
 love-tetris
 ===========
 
+![screen3](https://f.cloud.github.com/assets/1129910/1110954/8daf5ac2-199d-11e3-8bd7-657aef8d87ac.png)
+
+Releases are ![here](https://github.com/MrSmith33/love-tetris/releases)
+
 Highly customizable tetris made with [love2d](https://love2d.org/).
 
 All settings are located in __data.lua__ in __rules__ table. You can also edit __block__ and __colors__ tables.
