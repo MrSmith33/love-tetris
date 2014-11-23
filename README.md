@@ -1,7 +1,8 @@
 love-tetris
 ===========
 
-![screen3](https://f.cloud.github.com/assets/1129910/1110954/8daf5ac2-199d-11e3-8bd7-657aef8d87ac.png)
+![screen6](https://cloud.githubusercontent.com/assets/1129910/5157502/0555b550-7319-11e4-9da3-bf994d38d428.png)
+![screen7](https://cloud.githubusercontent.com/assets/1129910/5157501/0553171e-7319-11e4-846f-83ac1f52b8ee.png)
 
 Releases are ![here](https://github.com/MrSmith33/love-tetris/releases)
 
