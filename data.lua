@@ -59,7 +59,7 @@ rules = {
 	fps = 60,				-- frames per second.
 	shadow = true, 			-- shadow piece.
 	gravity = 0,			-- 0-disabled, 1-sticky, 2-cascade (only 0 implemented).
-	num_previews = 5, 		-- number of preview pieces.
+	num_previews = 2, 		-- number of preview pieces.
 	move_reset = false,		-- reset timer on horizontal moves.
 	spin_reset = false,		-- reset timer on rotation.
 	hard_drop_lock_delay = false, -- delay piece locking after hard drop.
@@ -80,8 +80,8 @@ rules = {
 	-- 1 - for every 1000 points another level, 1000 for each point another level
 	-- recommended values are [1-10]
 
-	playfield_width = 20,	-- width of the playfield.
-	playfield_height = 25,	-- height of the playfield. 2 invisible rows will be added.
+	playfield_width = 10,	-- width of the playfield.
+	playfield_height = 20,	-- height of the playfield. 2 invisible rows will be added.
 
 	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented.
 	randomizer = 'rg',-- 'stupid'-just math.random, 'rg'-7-bag, 'tgm'(not implemented).
@@ -119,6 +119,7 @@ game = {
 		math.randomseed( os.time() )
 
 		love.window.setTitle("LÖVE Tetris")
+		love.window.setMode(500, 600)
 
 		game.score = 0
 		game.level = 1
