@@ -33,6 +33,7 @@ function love.draw()
 	g.setColor(255, 255, 255)
 	g.print('FPS:'..love.timer.getFPS(), 20, 0)
 	g.print('Score:'..game.score, 20, 12)
+	g.print('Level:'..game.level_name, 20, 24)
 
 	g.print('Move: left, right, down', g.getWidth() - 300, 0)
 	g.print('Rotate: up', g.getWidth() - 300, 12)
@@ -116,7 +117,7 @@ function draw_block(x, y, color, hole_color)
 	g.rectangle("fill", lx, ly, block.w, block.h)
 
 	g.setColor(hole_color)
-	-- makes nice hole in the figure with any figure size
+	-- makes nice hole in the figure block with any figure size
 	g.rectangle("fill", lx + math.ceil(block.w/4), ly + math.ceil(block.h/4),
 						math.floor(block.w/2 - 0.25), math.floor(block.h/2 - 0.25))
 end
@@ -284,7 +285,8 @@ end
 function on_lines_removed(num)
 	if num == 0 then return end
 
-	game.score = game.score + (2^(num-1)*100)
+	game.score = game.score + game.points_for_cleared_lines(num)
+	game.update_difficulty()
 	audio.clear1:play()
 end
 

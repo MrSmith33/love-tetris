@@ -56,30 +56,36 @@ figures = {
 }
 
 rules = {
-	fps = 60,				-- frames per second
-	shadow = true, 			-- shadow piece
-	gravity = 0,			-- 0-disabled, 1-sticky, 2-cascade (only 0 implemented)
-	next_visible = 2, 		-- number of preview pieces
-	move_reset = false,		-- reset timer on horizontal moves
-	spin_reset = false,		-- reset timer on rotation
-	hard_drop_lock_delay = false, -- delay piece locking after hard drop
-	wall_kick = false, 		-- wall kicks (not implemented)
+	fps = 60,				-- frames per second.
+	shadow = true, 			-- shadow piece.
+	gravity = 0,			-- 0-disabled, 1-sticky, 2-cascade (only 0 implemented).
+	next_visible = 2, 		-- number of preview pieces.
+	move_reset = false,		-- reset timer on horizontal moves.
+	spin_reset = false,		-- reset timer on rotation.
+	hard_drop_lock_delay = false, -- delay piece locking after hard drop.
+	wall_kick = false, 		-- wall kicks (not implemented).
 
-	frame_delay = 1/60, 	-- defines framerate
-	lock_delay = 30, 		-- delay before piece locks
-	spawn_delay = 1, 		-- delay before piece spawns
-	clear_delay = 10, 		-- delay after piece locks and before next piece spawns
-	autorepeat_delay = 15, 	-- initilal delay
-	autorepeat_interval = 4, -- delay between moves
+	frame_delay = 1/60, 	-- defines framerate.
+	lock_delay = 30, 		-- delay before piece locks.
+	spawn_delay = 1, 		-- delay before piece spawns.
+	clear_delay = 10, 		-- delay after piece locks and before next piece spawns.
+	autorepeat_delay = 15, 	-- initilal delay.
+	autorepeat_interval = 4, -- delay between moves.
+
+	hard_levels_treshold = 60, -- how many levels before hard levels
+	max_levels = 60,		-- determines max num of falls per sec
+	-- hard_levels_treshold < max_levels
+	-- delay = max_levels - level
 
 	playfield_width = 10,	-- width of the playfield.
 	playfield_height = 20,	-- height of the playfield. 2 invisible rows will be added.
 
-	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented
-	randomizer = 'rg',-- 'stupid'-just math.random, 'rg'-7-bag, 'tgm'(not implemented)
+	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented.
+	randomizer = 'rg',-- 'stupid'-just math.random, 'rg'-7-bag, 'tgm'(not implemented).
+	-- for hardcore gameplay try 'stupid' one.
 
 	soft_gravity = {delay = 3, distance = 1} -- G = distance / delay. Params of the soft drop.
-	-- delay means how frequent will piece fall. distance - number of blocks.
+	-- delay means what delay is between piece fall. distance - number of blocks to fall.
 }
 
 -- stores game info, such as score, game speed etc.
@@ -89,14 +95,14 @@ game = {
 					game_over = 'Game over', paused = 'Paused', in_air = 'Falling', spawning = 'Spawning'},
 	last_state = '', -- stores state before pausing
 
-	timer = 0, --in seconds
+	timer = 0, -- time accumulator, increases each update, in seconds
 	
-	frame = 1, -- in frames
-	autorepeat_timer = 1, -- in frames
+	frame = 1, -- frame counter, increases by 1 each frame
+	autorepeat_timer = 1, -- key autorepeat timer, in frames
 	hold_timer = 1, --in frames, frames since left or right is holded
 
-	gravity = 1,
-	gravities = {{delay = 64, distance = 1}, rules.soft_gravity}, -- delay with which figure fall occurs.
+	gravity = 1, -- current gravity mode. 1 - normal, 2 - soft. Used as index in gravities
+	gravities = {{delay = rules.num_levels, distance = 1}, rules.soft_gravity}, -- delay with which figure fall occurs.
 
 	hold_dir = 0, -- -1 left, 1 right, 0 none
 
@@ -104,14 +110,22 @@ game = {
 
 	score = 0,
 	level = 1,
+	level_name = 1,
+	difficulty = 4, -- [1 - 1000] higher numbers means faster gravity increase
+	-- 1 - for every 1000 points another level, 1000 for each point another level
+	-- recommended values are [1-10]
 
 	init = function()
+		math.randomseed( os.time() )
+
+		love.window.setTitle("LÖVE Tetris")
+
 		game.score = 0
 		game.level = 1
 		game.curr_interval = 0
 		game.frame_delay = 1/rules.fps
 		game.frame_timer = 0
-		game.gravities = {{delay = 64, distance = 1}, rules.soft_gravity}
+		game.update_difficulty()
 		game.history = {}
 		game.random_gen_data = {}
 		figure.next = {}
@@ -135,6 +149,23 @@ game = {
 		table.remove(game.history)
 		table.insert(game.history, 1, result)
 		return figure
+	end,
+
+	points_for_cleared_lines = function (num_cleared_lines)
+		return (2^(num_cleared_lines-1)*100)
+	end,
+
+	update_difficulty = function()
+		game.level = math.floor(game.score / (1000 / game.difficulty)) + 1
+
+		if game.level <= rules.hard_levels_treshold then
+			game.gravities[1].delay = rules.max_levels - game.level
+			game.level_name = tostring(game.level)
+		else
+			game.gravities[1].delay = 4
+			game.gravities[1].distance = game.level - rules.hard_levels_treshold
+			game.level_name = "Hard " .. game.gravities[1].distance
+		end
 	end
 }
 
