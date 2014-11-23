@@ -9,20 +9,20 @@ Highly customizable tetris made with [love2d](https://love2d.org/).
 
 All settings are located in __data.lua__ in __rules__ table. You can also edit __block__ and __colors__ tables.
 
-###TODO's:
-- Random generators
+###What can be added:
 - Sticky and cascade gravity
 - Piece holding
-- Scoring system and combos
+- Score combos
 - Additional optional figures
-- Customizable color scheme
-- Difficulty encreasing
+- Predefined color schemes
 - Choosable game modes
 - Settings screen and game menu
 
 
-###Done in head version:
+###Version 0.8:
 - Configurable number of figure previews
+- Scoring system.
+- Difficulty system. You can edit difficulty_modifier in rules table.
 
 ###Version 0.7
 - Configurable key autorepeat
@@ -38,7 +38,7 @@ All settings are located in __data.lua__ in __rules__ table. You can also edit _
 ###Version 0.6
 - randomizer - "Random Generator"
 
-###Version 0.1-0.5
+###Versions 0.1-0.5
 - Moving
 - Gravitation
 - Rotaion

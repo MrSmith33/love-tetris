@@ -59,7 +59,7 @@ rules = {
 	fps = 60,				-- frames per second.
 	shadow = true, 			-- shadow piece.
 	gravity = 0,			-- 0-disabled, 1-sticky, 2-cascade (only 0 implemented).
-	next_visible = 2, 		-- number of preview pieces.
+	num_previews = 5, 		-- number of preview pieces.
 	move_reset = false,		-- reset timer on horizontal moves.
 	spin_reset = false,		-- reset timer on rotation.
 	hard_drop_lock_delay = false, -- delay piece locking after hard drop.
@@ -76,9 +76,12 @@ rules = {
 	max_levels = 60,		-- determines max num of falls per sec
 	-- hard_levels_treshold < max_levels
 	-- delay = max_levels - level
+	difficulty_modifier = 4, -- [1 - 1000] higher numbers means faster gravity increase
+	-- 1 - for every 1000 points another level, 1000 for each point another level
+	-- recommended values are [1-10]
 
-	playfield_width = 10,	-- width of the playfield.
-	playfield_height = 20,	-- height of the playfield. 2 invisible rows will be added.
+	playfield_width = 20,	-- width of the playfield.
+	playfield_height = 25,	-- height of the playfield. 2 invisible rows will be added.
 
 	rotation_system = 'simple', -- 'srs', 'dtet', 'tgm'. simple is only implemented.
 	randomizer = 'rg',-- 'stupid'-just math.random, 'rg'-7-bag, 'tgm'(not implemented).
@@ -111,9 +114,6 @@ game = {
 	score = 0,
 	level = 1,
 	level_name = 1,
-	difficulty = 4, -- [1 - 1000] higher numbers means faster gravity increase
-	-- 1 - for every 1000 points another level, 1000 for each point another level
-	-- recommended values are [1-10]
 
 	init = function()
 		math.randomseed( os.time() )
@@ -129,7 +129,7 @@ game = {
 		game.history = {}
 		game.random_gen_data = {}
 		figure.next = {}
-		for i=1, rules.next_visible do
+		for i=1, rules.num_previews do
 			table.insert(figure.next, game.random_fig())
 		end
 		spawn_fig()
@@ -156,7 +156,7 @@ game = {
 	end,
 
 	update_difficulty = function()
-		game.level = math.floor(game.score / (1000 / game.difficulty)) + 1
+		game.level = math.floor(game.score / (1000 / rules.difficulty_modifier)) + 1
 
 		if game.level <= rules.hard_levels_treshold then
 			game.gravities[1].delay = rules.max_levels - game.level
